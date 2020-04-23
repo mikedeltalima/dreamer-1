@@ -9,6 +9,49 @@ import numpy as np
 from PIL import Image
 
 
+class OpenAI:
+
+  def __init__(self, name):
+    self._env = gym.make(name).unwrapped
+    self._random = np.random.RandomState(seed=None)
+
+  @property
+  def observation_space(self):
+    spaces = {}
+    for key, value in self._env.observation_spec().items():
+      spaces[key] = gym.spaces.Box(
+          -np.inf, np.inf, value.shape, dtype=np.float32)
+    spaces['image'] = gym.spaces.Box(
+        0, 255, self._size + (3,), dtype=np.uint8)
+    return gym.spaces.Dict(spaces)
+
+  @property
+  def action_space(self):
+      return self._env.action_space
+
+  def step(self, action):
+    obs, reward, done, info = self._env.step(action)
+    obs_dict = { 'obs': obs }
+    obs_dict['image'] = self.render()
+    return obs_dict, reward, done, info
+
+  def reset(self):
+    time_step = self._env.reset()
+    try:
+      obs = dict(time_step.observation)
+    except AttributeError:
+      obs = { 'obs': time_step }
+    obs['image'] = self.render()
+    return obs
+
+  def render(self, mode="rgb_array"):
+    frame = self._env.render(mode)
+    return frame
+
+  def close(self):
+    return self._env.close()
+
+
 class DeepMindControl:
 
   def __init__(self, name, size=(64, 64), camera=None):
@@ -69,7 +112,6 @@ class Atari:
   def __init__(
       self, name, action_repeat=4, size=(84, 84), grayscale=True, noops=30,
       life_done=False, sticky_actions=True):
-    import gym
     version = 0 if sticky_actions else 4
     name = ''.join(word.title() for word in name.split('_'))
     with self.LOCK:

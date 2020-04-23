@@ -145,7 +145,7 @@ def save_episodes(directory, episodes):
   timestamp = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
   for episode in episodes:
     identifier = str(uuid.uuid4().hex)
-    length = len(episode['reward'])
+    length = episode['reward'].shape[0]
     filename = directory / f'{timestamp}-{identifier}-{length}.npz'
     with io.BytesIO() as f1:
       np.savez_compressed(f1, **episode)

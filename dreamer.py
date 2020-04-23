@@ -8,9 +8,12 @@ import sys
 import time
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['MUJOCO_GL'] = 'egl'
+# os.environ['MUJOCO_GL'] = 'egl'
+os.environ['MUJOCO_GL'] = 'glfw'
 
 import numpy as np
+import pyglet
+import gym
 import tensorflow as tf
 from tensorflow.keras.mixed_precision import experimental as prec
 
@@ -23,7 +26,6 @@ sys.path.append(str(pathlib.Path(__file__).parent))
 import models
 import tools
 import wrappers
-
 
 def define_config():
   config = tools.AttrDict()
@@ -125,14 +127,15 @@ class Dreamer(tools.Module):
         self._write_summaries()
     action, state = self.policy(obs, state, training)
     if training:
-      self._step.assign_add(len(reset) * self._c.action_repeat)
+      self._step.assign_add(reset.shape[0] * self._c.action_repeat)
     return action, state
 
   @tf.function
   def policy(self, obs, state, training):
     if state is None:
-      latent = self._dynamics.initial(len(obs['image']))
-      action = tf.zeros((len(obs['image']), self._actdim), self._float)
+      obs_len = obs['image'].shape[0]
+      latent = self._dynamics.initial(obs_len)
+      action = tf.zeros((obs_len, self._actdim), self._float)
     else:
       latent, action = state
     embed = self._encode(preprocess(obs, self._c))
@@ -356,12 +359,13 @@ def load_dataset(directory, config):
 
 def summarize_episode(episode, config, datadir, writer, prefix):
   episodes, steps = tools.count_episodes(datadir)
-  length = (len(episode['reward']) - 1) * config.action_repeat
+  episode_reward_len = episode['reward'].shape[0]
+  length = (episode_reward_len - 1) * config.action_repeat
   ret = episode['reward'].sum()
   print(f'{prefix.title()} episode of length {length} with return {ret:.1f}.')
   metrics = [
       (f'{prefix}/return', float(episode['reward'].sum())),
-      (f'{prefix}/length', len(episode['reward']) - 1),
+      (f'{prefix}/length', episode_reward_len - 1),
       (f'episodes', episodes)]
   step = count_steps(datadir, config)
   with (config.logdir / 'metrics.jsonl').open('a') as f:
@@ -383,6 +387,9 @@ def make_env(config, writer, prefix, datadir, store):
     env = wrappers.Atari(
         task, config.action_repeat, (64, 64), grayscale=False,
         life_done=True, sticky_actions=True)
+    env = wrappers.OneHotAction(env)
+  elif suite == 'openai':
+    env = wrappers.OpenAI(task)
     env = wrappers.OneHotAction(env)
   else:
     raise NotImplementedError(suite)
@@ -431,7 +438,7 @@ def main(config):
 
   # Train and regularly evaluate the agent.
   step = count_steps(datadir, config)
-  print(f'Simulating agent for {config.steps-step} steps.')
+  print(f'Simulating agent for {config.steps} steps.')
   agent = Dreamer(config, datadir, actspace, writer)
   if (config.logdir / 'variables.pkl').exists():
     print('Load checkpoint.')
@@ -452,6 +459,7 @@ def main(config):
 
 
 if __name__ == '__main__':
+  tf.config.experimental_run_functions_eagerly(True)
   try:
     import colored_traceback
     colored_traceback.add_hook()
