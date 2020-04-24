@@ -380,9 +380,10 @@ def summarize_episode(episode, config, datadir, writer, prefix):
 def make_env(config, writer, prefix, datadir, store):
   suite, task = config.task.split('_', 1)
   if suite == 'dmc':
-    env = wrappers.DeepMindControl(task)
-    env = wrappers.ActionRepeat(env, config.action_repeat)
-    env = wrappers.NormalizeActions(env)
+    pass
+    # env = wrappers.DeepMindControl(task)
+    # env = wrappers.ActionRepeat(env, config.action_repeat)
+    # env = wrappers.NormalizeActions(env)
   elif suite == 'atari':
     env = wrappers.Atari(
         task, config.action_repeat, (64, 64), grayscale=False,
