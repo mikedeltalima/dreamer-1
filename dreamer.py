@@ -459,7 +459,7 @@ def main(config):
 
 
 if __name__ == '__main__':
-  tf.config.experimental_run_functions_eagerly(True)
+  # tf.config.experimental_run_functions_eagerly(True)
   try:
     import colored_traceback
     colored_traceback.add_hook()
