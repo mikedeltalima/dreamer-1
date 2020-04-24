@@ -8,8 +8,8 @@ import sys
 import time
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-# os.environ['MUJOCO_GL'] = 'egl'
-os.environ['MUJOCO_GL'] = 'glfw'
+os.environ['MUJOCO_GL'] = 'egl'
+# os.environ['MUJOCO_GL'] = 'glfw'
 
 import numpy as np
 import pyglet
