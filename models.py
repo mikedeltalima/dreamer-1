@@ -89,13 +89,27 @@ class ConvEncoder(tools.Module):
 
   def __call__(self, obs):
     kwargs = dict(strides=2, activation=self._act)
-    x = tf.reshape(obs['image'], (-1,) + tuple(obs['image'].shape[-3:]))
+    obs_image_shape = obs['image'].shape
+    print(f"obs_image_shape: {obs_image_shape}")
+    x = tf.reshape(obs['image'], (-1,) + tuple(obs_image_shape[-3:]))
+    print(f"x.shape: {x.shape}")
     x = self.get('h1', tfkl.Conv2D, 1 * self._depth, 4, **kwargs)(x)
+    print(f"x.shape: {x.shape}")
     x = self.get('h2', tfkl.Conv2D, 2 * self._depth, 4, **kwargs)(x)
+    print(f"x.shape: {x.shape}")
     x = self.get('h3', tfkl.Conv2D, 4 * self._depth, 4, **kwargs)(x)
+    print(f"x.shape: {x.shape}")
     x = self.get('h4', tfkl.Conv2D, 8 * self._depth, 4, **kwargs)(x)
-    shape = tf.concat([tf.shape(obs['image'])[:-3], [32 * self._depth]], 0)
-    return tf.reshape(x, shape)
+    shape = tf.concat([obs_image_shape[:-3], [32 * self._depth]], 0)
+    print(f"x.shape: {x.shape}")
+    print(f"shape: {shape}")
+    try:
+      ret = tf.reshape(x, shape)
+    except Exception:
+      print(x.shape)
+      print(shape)
+      raise
+    return ret
 
 
 class ConvDecoder(tools.Module):
