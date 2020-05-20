@@ -8,10 +8,14 @@ import gym
 import numpy as np
 from PIL import Image
 
+import pyvirtualdisplay
+
 
 class OpenAI:
 
   def __init__(self, name):
+    self._display = pyvirtualdisplay.Display(visible=False, size=(1400, 900))
+    self._display.start()
     self._env = gym.make(name).unwrapped
     self._random = np.random.RandomState(seed=None)
 
@@ -55,6 +59,8 @@ class OpenAI:
 class DeepMindControl:
 
   def __init__(self, name, size=(64, 64), camera=None):
+    self._display = pyvirtualdisplay.Display(visible=False, size=(1400, 900))
+    self._display.start()
     domain, task = name.split('_', 1)
     if domain == 'cup':  # Only domain with multiple words.
       domain = 'ball_in_cup'
