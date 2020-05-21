@@ -104,10 +104,11 @@ class Dreamer(tools.Module):
     self._metrics['expl_amount']  # Create variable for checkpoint.
     self._float = prec.global_policy().compute_dtype
     self._strategy = tf.distribute.MirroredStrategy()
+    suite, task = config.task.split('_', 1)
     with self._strategy.scope():
       self._dataset = iter(self._strategy.experimental_distribute_dataset(
           load_dataset(datadir, self._c)))
-      self._build_model()
+      self._build_model(suite)
 
   def __call__(self, obs, reset, state=None, training=True):
     step = self._step.numpy().item()
@@ -214,7 +215,7 @@ class Dreamer(tools.Module):
       if tf.equal(log_images, True):
         self._image_summaries(data, embed, image_pred)
 
-  def _build_model(self):
+  def _build_model(self, suite):
     acts = dict(
         elu=tf.nn.elu, relu=tf.nn.relu, swish=tf.nn.swish,
         leaky_relu=tf.nn.leaky_relu)
@@ -229,8 +230,9 @@ class Dreamer(tools.Module):
       self._pcont = models.DenseDecoder(
           (), 3, self._c.num_units, 'binary', act=act)
     self._value = models.DenseDecoder((), 3, self._c.num_units, act=act)
+    dist = "onehot" if (suite == 'atari') else self._c.action_dist
     self._actor = models.ActionDecoder(
-        self._actdim, 4, self._c.num_units, self._c.action_dist,
+        self._actdim, 4, self._c.num_units, dist,
         init_std=self._c.action_init_std, act=act)
     model_modules = [self._encode, self._dynamics, self._decode, self._reward]
     if self._c.pcont:
